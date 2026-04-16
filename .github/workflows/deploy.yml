@@ -1,0 +1,45 @@
+name: Preview Deployment
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Start App
+        run: |
+          echo "Starting app..."
+          npx ts-node index.ts &
+          sleep 10
+
+      - name: Test App
+        run: |
+          curl --retry 5 --retry-delay 5  http://localhost:3000
+
+      - name: Set Preview Name
+        run: echo "PREVIEW_NAME=preview-pr-${{ github.event.number }}" >> $GITHUB_ENV
+      
+      - name: Show Preview URL
+        run: echo "Preview will be at https://$PREVIEW_NAME.onrender.com"
+      
+      - name: Trigger Render Deploy
+        run: |
+          echo "Deploying to Render..."
+          curl -X POST  ${{ secrets.RENDER_DEPLOY_HOOK }}
+      
